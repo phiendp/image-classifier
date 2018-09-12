@@ -96,7 +96,7 @@ def load_pretrained_model(model_name, hidden_units):
 
 def validation(model, valid_data, criterion, gpu=False):
     '''
-    Track the loss and accuracy on the validation set to determine the best hyperparameters
+    Track the loss and accuracy on the validation set to determine the best hyperparameters.
     '''
     test_loss = 0
     accuracy = 0
@@ -117,7 +117,7 @@ def validation(model, valid_data, criterion, gpu=False):
 
 def train(model, learning_rate, criterion, train_data, valid_data, epochs, gpu=False):
     '''
-    Train the classifier layers using backpropagation using the pre-trained network to get the features
+    Train the classifier layers using backpropagation using the pre-trained network to get the features.
     '''
     optimizer = optim.Adam(model.classifier.parameters(), lr = learning_rate)
     epochs = epochs
@@ -160,3 +160,24 @@ def train(model, learning_rate, criterion, train_data, valid_data, epochs, gpu=F
                 "Validation Accuracy: {:.3f}".format(accuracy))
         total_loss = 0
         model.train()
+
+def test(model, test_data, gpu=False):
+    '''
+    Run the test images through the network and measure the accuracy.
+    '''
+    correct = 0
+    total = 0
+    if gpu is True:
+        model.to('cuda')
+    model.eval()
+    with torch.no_grad():
+        for data in test_data:
+            images, labels = data
+            if gpu is True:
+                images, labels = images.to('cuda'), labels.to('cuda')
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    model.train()
+    print('Accuracy of the network on the test images: %.2f %%' % (100 * correct / total))
