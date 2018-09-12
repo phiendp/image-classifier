@@ -154,7 +154,7 @@ def train(model, learning_rate, criterion, train_data, valid_data, epochs, gpu=F
     for e in range(epochs):
         total_loss = 0
         running_loss = 0
-        for inputs, labels in enumerate(train_data):
+        for inputs, labels in train_data:
             steps += 1
             if gpu is True:
                 inputs, labels = inputs.to('cuda'), labels.to('cuda')
@@ -247,6 +247,7 @@ def predict(image_path, model, topk, cat_to_name, class_labels, gpu=False):
     label_index = []
     for i in index:
         label_index.append(int(class_labels[int(i)]))
+
     labels = []
     for i in label_index:
         labels.append(cat_to_name[str(i)])
