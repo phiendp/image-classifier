@@ -1,8 +1,11 @@
 import torch
 from torch import nn, optim
 from torchvision import datasets, transforms, models
+import numpy as np
 import json
 from collections import OrderedDict
+from PIL import Image
+import matplotlib.pyplot as plt
 
 
 MEANS = [0.485, 0.456, 0.406]
@@ -56,6 +59,24 @@ def load_json(filename):
     with open(filename, 'r') as f:
         cat_to_name = json.load(f, object_pairs_hook=OrderedDict)
     return cat_to_name
+
+
+def save_checkpoint(state, save_dir=None):
+    if save_dir:
+        torch.save(state, save_dir + '/checkpoint.pth')
+    else:
+        torch.save(state, 'checkpoint.pth')
+
+
+def load_saved_model(filename='checkpoint.pth'):
+    print("Loading '{}'".format(filename))
+    checkpoint = torch.load(filename)
+    model = load_pretrained_model(checkpoint['arch'], checkpoint['hidden_units'])
+    model.load_state_dict(checkpoint['state_dict'])
+    optimizer = optim.Adam(model.classifier.parameters())
+    optimizer.load_state_dict(checkpoint['optimizer'])
+    return model, checkpoint['class_labels']
+
 
 def load_pretrained_model(model_name, hidden_units):
     '''
@@ -161,6 +182,7 @@ def train(model, learning_rate, criterion, train_data, valid_data, epochs, gpu=F
         total_loss = 0
         model.train()
 
+
 def test(model, test_data, gpu=False):
     '''
     Run the test images through the network and measure the accuracy.
@@ -181,3 +203,51 @@ def test(model, test_data, gpu=False):
             correct += (predicted == labels).sum().item()
     model.train()
     print('Accuracy of the network on the test images: %.2f %%' % (100 * correct / total))
+
+
+def process_image(image):
+    '''
+    Scales, crops, and normalizes a PIL image for a PyTorch model.
+    '''
+    img_loader = transforms.Compose([transforms.Resize(256),
+                                      transforms.CenterCrop(224),
+                                      transforms.ToTensor(),
+                                      transforms.Normalize(MEANS, STANDARD_DEVIATIONS)])
+
+    pil_image = Image.open(image)
+    pil_image = img_loader(pil_image).float()
+    np_image = np.array(pil_image)
+
+    return np_image
+
+
+def predict(image_path, model, topk, cat_to_name, class_labels, gpu=False):
+    '''
+    Predict the class (or classes) of an image using the trained deep learning model.
+    '''
+    model.eval()
+    image = process_image(image_path)
+    image_tensor = torch.from_numpy(image).type(torch.FloatTensor)
+    image_tensor.resize_([1, 3, 224, 224])
+    model.to('cpu')
+
+    if gpu is True:
+        print("Using GPU")
+        model.to('cuda')
+        image_tensor = image_tensor.to('cuda')
+
+    result = torch.exp(model(image_tensor))
+
+    probs, index = result.topk(topk)
+    probs, index = probs.detach(), index.detach()
+    probs.resize_([topk])
+    index.resize_([topk])
+    probs, index = probs.tolist(), index.tolist()
+
+    label_index = []
+    for i in index:
+        label_index.append(int(class_labels[int(i)]))
+    labels = []
+    for i in label_index:
+        labels.append(cat_to_name[str(i)])
+    return probs, labels, label_index
