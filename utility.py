@@ -1,5 +1,7 @@
 import torch
 from torchvision import datasets, transforms, models
+import json
+from collections import OrderedDict
 
 
 MEANS = [0.485, 0.456, 0.406]
@@ -7,6 +9,9 @@ STANDARD_DEVIATIONS = [0.229, 0.224, 0.225]
 
 
 def load_img(input_dir):
+    '''
+    Load the training, testing and validation data using torchvision
+    '''
     train_dir = input_dir + '/train'
     test_dir = input_dir + '/test'
     valid_dir = input_dir + '/valid'
@@ -41,3 +46,12 @@ def load_img(input_dir):
 
     class_labels = image_datasets['training'].classes
     return class_labels, dataloaders['training'], dataloaders['testing'], dataloaders['validation']
+
+
+def load_json(filename):
+    '''
+    Load in a mapping from category label to category name
+    '''
+    with open(filename, 'r') as f:
+        cat_to_name = json.load(f, object_pairs_hook=OrderedDict)
+    return cat_to_name
