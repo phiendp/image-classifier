@@ -174,9 +174,12 @@ def train(model, learning_rate, criterion, train_data, valid_data, epochs, gpu=F
 
         model.eval()
         with torch.no_grad():
+            train_loss, train_accuracy = validation(model, train_data, criterion)
             valid_loss, accuracy = validation(model, valid_data, criterion, gpu)
+
             print("Epoch: {}/{}... ".format(e + 1, epochs),
-                "Training Loss: {:.3f}.. ".format(total_loss),
+                "Training Loss: {:.3f}.. ".format(train_loss),
+                "Training Accuracy: {:.3f}.. ".format(train_accuracy),
                 "Validation Loss: {:.3f}.. ".format(valid_loss),
                 "Validation Accuracy: {:.3f}".format(accuracy))
         total_loss = 0
